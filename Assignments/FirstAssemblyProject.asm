@@ -28,8 +28,8 @@
 
     ;Inputs
     ;------
-    #define refTemp	    10
-    #define measuredTemp    -10
+    #define refTemp	    15
+    #define measuredTemp    0
     
     ;Outputs
     ;------
@@ -47,7 +47,7 @@
     #define measuredTempDecOnes 0x70
     #define measuredTempDecTens 0x71
     #define measuredTempDecHuns 0x72
-    #define operation		0x00	
+    #define operation		0x22	
     #define quotient		0x05
     #define divisor		10
     
@@ -113,19 +113,20 @@ OPERATIONS:
 	MOVLW	refTemp			
 	MOVWF	refTempReg	
 	MOVLW	measuredTemp
-	SUBWF	refTempReg, 1		//Compares measuredTemp and refTemp
+	MOVWF	measuredTempReg
+	SUBWF	refTempReg, 0		//Compares measuredTemp and refTemp
 					//Positive difference means meas < ref
 					//Negative difference means ref < meas
 					//No difference means meas = ref
 	BN	COOL
 	BZ	NOTHING
 HEAT:	
-	MOVLW	1			//sends heating function
+	MOVLW	2			//sends heating function
 	MOVWF	operation
 	MOVFF	operation, PORTD
 	GOTO	FINISH
 COOL:
-	MOVLW	2			//sends cooling function
+	MOVLW	4			//sends cooling function
 	MOVWF	operation
 	MOVFF	operation, PORTD
 	GOTO	FINISH
@@ -135,4 +136,6 @@ NOTHING:				//nothing happens, temps are equal
 	GOTO	FINISH
 	
 FINISH:	SLEEP
+
+
 
