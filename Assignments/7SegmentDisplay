@@ -1,1 +1,195 @@
+;---------------------
+; Title: 7-DigitCounter
+;---------------------
+
+// Purpose: This program will have two button inputs and a 7-segment
+//	    display output. The two buttons will either cause the 
+//	    display to increment or decrement numbers while pressed,
+//	    and the display will continue to display whatever value was last
+//	    shown while no buttons are pressed. In the event that both
+//	    buttons are pressed, the counter will reset to zero.
+// Dependencies: NONE
+// Compiler: MPLAB X IDE v6.20
+// Author: Max Bernstein
+// OUTPUTS: PORTD.1 - Heating / PORTD.2 - Cooling
+// INPUTS: refTemp - no input / measuredTemp - no input
+// Versions:
+//  	V1.0: 3/22/24
+//-----------------------------
+
+;---------------------
+; Initialization
+;---------------------
+#include "C:\Users\maxbe\MPLABXProjects\7-DigitCounter.X\AssemblyConfig.inc"
+#include <xc.inc>
+
+
+;---------------------
+; Variables & Ports
+;---------------------
+PSECT absdata,abs,ovrld        ; Do not change
+    
+    ;Inputs
+    ;------
+    #define Increment	PORTA, 0
+    #define Decrement	PORTA, 1
+    
+    ;Outputs
+    ;------
+    
+    
+    ;Registers & Variables
+    ;------
+    UpBound	EQU 0x10
+    LowBound	EQU 0x00
+    #define	UpBoundReg  0x21
+    #define	LowBoundReg 0x22
+    OuterLoopVal EQU	0xFF
+    InnerLoopVal EQU	0xFF
+    InLoopReg	 EQU	0x23
+    OutLoopReg	 EQU	0x24
+    
+    ;Data Bytes for Display
+    ;------
+    ORG	0x00			
+    DB	0xFC, 0x60, 0xDA, 0xF2	;0 - 3 outputs
+    DB	0x66, 0xB6, 0xBE, 0xE0	;4 - 7 outputs
+    DB	0xFE, 0xF6, 0xEE, 0xFF	;8 - B outputs
+    DB	0x9C, 0xFD, 0x9F, 0x8F	;C - F outputs
+	
+    ;----
+    ;Main
+    ;----  
+
+MAIN:
+    ORG 0x30
+    	
+INITB:
+    BANKSEL	PORTA
+    CLRF	PORTA	;initialize PORTA
+    BANKSEL	LATA
+    CLRF	LATA
+    BANKSEL	ANSELA
+    CLRF	ANSELA	;digital I/O
+    BANKSEL	TRISA
+    MOVLW	0b00000011  ;Sets RA[1:0] as inputs
+    MOVWF	TRISA
+ 
+INITD:
+    BANKSEL	PORTD
+    CLRF	PORTD	;initialize PORTD
+    BANKSEL	LATD
+    CLRF	LATD
+    BANKSEL	ANSELD
+    CLRF	ANSELD	;digital I/O
+    BANKSEL	TRISD
+    MOVLW	0b00000000  ;Sets RD[7:0] as outputs
+			    ;for seven-seg display
+    MOVWF	TRISD
+   
+MISCINIT:
+    
+    MOVLW	UpBound
+    MOVWF	UpBoundReg
+    MOVLW	LowBound
+    MOVWF	LowBoundReg
+    
+TABLINIT:
+    
+    MOVLW   0x00
+    MOVWF   TBLPTRL
+    TBLRD*
+    MOVFF   TABLAT, PORTD
+    GOTO    START
+      
+START:
+    
+    BTFSS   Decrement
+    BRA	    DECR
+    BTFSS   Increment
+    BRA	    INCR
+    BRA	    START
+    
+DECR:
+    
+    BTFSS   Increment		    ;Test if other button is pressed
+    GOTO    TABLINIT		    ;reset seven-segment to 0
+   
+    TBLRD*
+    MOVFF   TABLAT, PORTD
+    MOVLW   LowBound
+    BTFSC   Decrement
+    BRA	    START
+    CALL    DELAY
+    DECF    TBLPTRL, F
+    BN	    SUBSTART
+    BRA	    DECR
+  
+SUBSTART:
+    
+    MOVLW   0x0F
+    MOVWF   TBLPTRL
+    BRA	    DECR
+
+INCR:
+    
+    BTFSS   Decrement
+    GOTO    TABLINIT
+    
+    TBLRD*
+    MOVFF   TABLAT, PORTD
+    MOVLW   UpBound
+    CPFSLT  TBLPTRL
+    BRA     ADDSTART
+    BTFSC   Increment
+    BRA	    START
+    CALL    DELAY
+    INCF    TBLPTRL, F
+    BRA	    INCR
+
+ADDSTART:
+
+    MOVLW   0x00
+    MOVWF   TBLPTRL
+    BRA	    INCR
+
+
+;TEST:
+;
+;    TBLRD+*
+;    MOVFF   TABLAT, PORTD
+;    CALL DELAY
+;    BRA TEST
+    
+DELAY:
+	
+    MOVLW	OuterLoopVal
+    MOVWF	OutLoopReg
+    MOVLW	InnerLoopVal
+    MOVWF	InLoopReg
+    MOVLW	0x02
+    MOVWF	0x25
+	
+INLOOP:
+    DECF    InLoopReg
+    BZ	    OUTLOOP
+    GOTO    INLOOP
+	    
+OUTLOOP:
+    DECF    OutLoopReg
+    BZ	    OUTESTLOOP	
+    MOVLW   InnerLoopVal
+    MOVWF   InLoopReg
+    GOTO    INLOOP
+    
+OUTESTLOOP:
+    DECF    0x25, 1
+    BZ	    EXIT
+    MOVLW   OuterLoopVal
+    MOVWF   OutLoopReg
+    GOTO    OUTLOOP
+	
+EXIT:
+    RETURN  
+
 
