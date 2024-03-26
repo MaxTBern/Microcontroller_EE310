@@ -15,6 +15,9 @@
 // INPUTS: refTemp - no input / measuredTemp - no input
 // Versions:
 //  	V1.0: 3/22/24
+//	V1.1: 3/26/24	-   Added additonal delay on reset
+//	V1.2: 3/26/24	-   Added comments and removed unnecessary functions
+//			    and misc lines of unused code
 //-----------------------------
 
 ;---------------------
@@ -54,8 +57,8 @@ PSECT absdata,abs,ovrld        ; Do not change
     ORG	0x00			
     DB	0xFC, 0x60, 0xDA, 0xF2	;0 - 3 outputs
     DB	0x66, 0xB6, 0xBE, 0xE0	;4 - 7 outputs
-    DB	0xFE, 0xF6, 0xEE, 0xFF	;8 - B outputs
-    DB	0x9C, 0xFD, 0x9F, 0x8F	;C - F outputs
+    DB	0xFE, 0xF6, 0xEF, 0xFF	;8 - B outputs
+    DB	0x9D, 0xFD, 0x9F, 0x8F	;C - F outputs
 	
     ;----
     ;Main
@@ -94,17 +97,17 @@ MISCINIT:
     MOVLW	LowBound
     MOVWF	LowBoundReg
     
-TABLINIT:
-    
-    MOVLW   0x00
+TABLINIT:		    ;Initialized 7-segment display at zero
+			    ;Also used to reset display to zero when		    
+    MOVLW   0x00	    ;both buttons are pressed
     MOVWF   TBLPTRL
     TBLRD*
     MOVFF   TABLAT, PORTD
-    CALL    DELAY
-    CALL    DELAY
+    CALL    DELAY	    ;Delay called twice for extra time
+    CALL    DELAY	    ;More efficient than a second delay fx
     GOTO    START
       
-START:
+START:			    ;Main loop, waits for button input
     
     BTFSS   Decrement
     BRA	    DECR
@@ -119,17 +122,16 @@ DECR:
    
     TBLRD*
     MOVFF   TABLAT, PORTD
-    MOVLW   LowBound
-    BTFSC   Decrement
-    BRA	    START
+    BTFSC   Decrement		    ;Tests to make sure button is still
+    BRA	    START		    ;pressed before continuing
     CALL    DELAY
     DECF    TBLPTRL, F
-    BN	    SUBSTART
+    BN	    SUBSTART		    ;If TBLPTR goes below REG00, resets to F
     BRA	    DECR
   
 SUBSTART:
     
-    MOVLW   0x0F
+    MOVLW   0x0F		    ;Loops counter from 0 - F
     MOVWF   TBLPTRL
     BRA	    DECR
 
@@ -140,9 +142,9 @@ INCR:
     
     TBLRD*
     MOVFF   TABLAT, PORTD
-    MOVLW   UpBound
-    CPFSLT  TBLPTRL
-    BRA     ADDSTART
+    MOVLW   UpBound		    ;Different than Decrement test
+    CPFSLT  TBLPTRL		    ;Compares current TBLPRTL value (reg)
+    BRA     ADDSTART		    ;To upper bound of filled registers
     BTFSC   Increment
     BRA	    START
     CALL    DELAY
@@ -151,19 +153,11 @@ INCR:
 
 ADDSTART:
 
-    MOVLW   0x00
+    MOVLW   0x00		;Loops counter from F - 0
     MOVWF   TBLPTRL
     BRA	    INCR
 
-
-;TEST:
-;
-;    TBLRD+*
-;    MOVFF   TABLAT, PORTD
-;    CALL DELAY
-;    BRA TEST
-    
-DELAY:
+DELAY:				;Delay for (255^2) * 2 inst. cycles
 	
     MOVLW	OuterLoopVal
     MOVWF	OutLoopReg
