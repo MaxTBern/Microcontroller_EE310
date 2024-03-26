@@ -20,7 +20,7 @@
 ;---------------------
 ; Initialization
 ;---------------------
-#include "C:\Users\maxbe\MPLABXProjects\7-DigitCounter.X\AssemblyConfig.inc"
+#include "C:\Users\maxbe\MPLABXProjects\7SegmentCounter.X\AssemblyConfig.inc"
 #include <xc.inc>
 
 
@@ -100,6 +100,8 @@ TABLINIT:
     MOVWF   TBLPTRL
     TBLRD*
     MOVFF   TABLAT, PORTD
+    CALL    DELAY
+    CALL    DELAY
     GOTO    START
       
 START:
@@ -191,5 +193,6 @@ OUTESTLOOP:
 	
 EXIT:
     RETURN  
+
 
 
